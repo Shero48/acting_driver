@@ -30,7 +30,11 @@ const register=async(req,res)=>{
 }
 const login=async(req,res)=>{
     try{
-        const {email,password}=req.body;
+        let {email,password}=req.body;
+        if(/^[0-9]{10}$/.test(email)){
+            email=Number(email);
+            console.log(email);
+        }
         const exist_user=await User.findOne({
             $or:[
                 {email:typeof email=='string'?email:null},
@@ -46,7 +50,7 @@ const login=async(req,res)=>{
             return res.status(300).json("invalid data");
         }
         let token=await gen_token(res,exist_user._id);
-        res.cookie('token',token,{maxAge:10*24*60*60})
+        res.cookie('token',token,{maxAge:10*24*60*60*1000})
         return res.status(200).json("user logined successfully");
     }catch(err){
         console.log(`err occuered ${err}`);
@@ -87,7 +91,7 @@ const view_profile=async(req,res)=>{
 }
 const logout=async(req,res)=>{
     try{
-        res.cookie("token","",{maxAge:Date.now()}).json("logout successfully")
+        res.cookie("token","",{maxAge:Date.now()}).status(200).json("logout successfully")
     }
     catch(err){
         console.log(`logout err occured : ${err}`);

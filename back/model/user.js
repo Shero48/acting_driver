@@ -10,7 +10,7 @@ const data_model=new schema({
     number:{
         type:Number,
         required:true,
-        unique:true,
+        unique:[true,"the number already exist"],
     },
     email:{
         type:String,

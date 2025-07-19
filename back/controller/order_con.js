@@ -7,8 +7,13 @@ const Notify=require('../model/notify');
 const book_order=async (req,res)=>{
     try{
         const {id}=req.params;
-        const {time,date,from,to,distance,amount}=req.body;
+        let {time,date,from,to,distance,amount,type}=req.body;
         const user=req.user;
+        let [houer,minute]=time.split(':')
+        const am=houer>=12||12?"PM":"AM";
+        const houers=houer%12||12;
+        time=`${houers.toString().padStart(2,0)}:${minute} ${am}`
+        console.log(time)
         const booking=await Order.create({
             user:user,
             driver:id,
@@ -18,10 +23,17 @@ const book_order=async (req,res)=>{
                 time:time,
                 distance:distance,
                 Date:date,
-                amount:amount
+                amount:amount,
+                type:type
             }
         });
+        const user_data =await User.findById(user);
+        const driver=await Driver.findById(id);
         if(booking){
+            user_data.booking.push(booking._id);
+            driver.order.push(booking._id);
+            await user_data.save();
+            await driver.save();
             return res.status(201).json("you booked successfully");
         }
     }catch(err){
@@ -34,11 +46,12 @@ const view_order=async(req,res)=>{
     try{
         const user_id=req.user;
         let type=req.originalUrl.trim().split('/')[3];
-       const order_list=type=='driver'?await Order.find({driver:user_id}):await Order.find({user:user_id});
-       return res.status(200).json(order_list)
+        const order_list=type=='driver'?await Order.find({driver:user_id}):await Order.find({user:user_id}).populate({path:'user',select:'-password'})
+        .populate({path:'driver',select:'-password -document'});
+        return res.status(200).json(order_list);
     }catch(err){
         console.log(`err occured on view_order page : ${err}`);
-        res.status(500).json("internal server error")
+        res.status(500).json("internal server error");
     }
 }
 

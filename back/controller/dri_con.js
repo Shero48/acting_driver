@@ -4,7 +4,7 @@ const gen_token=require('../middleware/gen_token');
 
 const register=async(req,res)=>{
     try{
-        const {name,password,email,number,lic_num,id_num}=req.body;
+        const {name,password,email,number,lic_num,id_num,loc,price}=req.body;
         const exist_user=await Driver.aggregate([{$match:{
             $or:[
                 {email:email},
@@ -24,12 +24,37 @@ const register=async(req,res)=>{
             document:{
                 lic_num:lic_num,
                 id_num:id_num
-            }
+            },
+            loc:loc,
+            price:price
         })
         return res.status(201).json("user register successfully");
     }catch(err){
         console.log(err);
         return res.status(500).json("internal server err")
+    }
+}
+const get_driver=async(req,res)=>{
+    try{
+        const {loc,gender}=req.body;
+        let p_up=loc.toLowerCase();
+        const data=await Driver.aggregate([
+            {$match:{
+                $and:[
+                {gender:{$eq:gender}},
+                {loc:{$eq:p_up}}
+            ],
+            }},
+            {$sort:{price:1}},
+            {$project:{password:0}}
+        ])
+        return res.status(200).json({
+            msg:"list of drivers",
+            data
+        })
+    }catch(err){
+        console.log(err);
+        return res.status(500).json("internal server err");
     }
 }
 const login=async(req,res)=>{
@@ -98,4 +123,25 @@ const logout=async(req,res)=>{
         res.status(500).json("internal server err");
     }
 }
-module.exports={register,login,my_profile,view_profile,logout}
+const rate=async(req,res)=>{
+    try{
+        const id=req.user;
+        const dri_id=req.params;
+        const {rat,cmd}=req.body;
+        const data=await Driver.findById(dri_id.id);
+        const value= data.rating.filter(val=>val.user==id)
+        console.log(data,value," : value");
+        data.rating.push({
+            user:id,
+            rat:value.length?value[0].rat:rat,
+            Comment:cmd
+        })
+        await data.save();
+        console.log(req.body);
+        return res.status(200).json("rating successfully");
+    }catch(err){
+        console.log(err);
+        res.status(500).json('something went wrong');
+    }
+}
+module.exports={register,login,my_profile,view_profile,logout,get_driver,rate}

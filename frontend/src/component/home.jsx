@@ -3,10 +3,13 @@ import Sidebar from './sidebar'
 import swap from '../assets/swap.png'
 import debounce from 'lodash.debounce';
 import { useDispatch,useSelector } from 'react-redux';
-import {search_loc_res,search_load,travilling} from '../slicer/search'
+import {search_loc_res,search_load,travilling} from '../slicer/search.jsx'
 import axios from 'axios'
 import MapView from './map';
-import Driver_list from '../pages/driver_list';
+import Driver_list from '../pages/driver_list.jsx';
+import { list_of_driver } from '../slicer/driver.jsx';
+import moment from 'moment';
+import toast from 'react-hot-toast';
 
 const Home = () => {
   const [p_up,setp_up]=useState({});
@@ -15,7 +18,8 @@ const Home = () => {
   const [time,settime]=useState();
   const [click,setclick]=useState(false);
   const dispatch=useDispatch();
-  const {search_text,search_result_top,search_result_bottom,search_status}=useSelector(state=> state.search)
+  const {search_result_top,search_result_bottom,search_status}=useSelector(state=> state.search)
+  const {driver_list}=useSelector(state=>state.driver)
   const exchange=()=>{
     const change=p_up
     setp_up(drop);
@@ -31,7 +35,7 @@ const Home = () => {
    }
   }
   document.addEventListener('click',()=>{
-    if(search_result_top.length>0 ||search_result_bottom.length>0 || search_loc_res.length>0 || click==true){
+    if(search_result_top ||search_result_bottom || search_loc_res.length>0 || click==true){
       dispatch(search_loc_res([]))
       setclick(false);
     }
@@ -53,14 +57,43 @@ const Home = () => {
     }
   }
   const get_in=(e)=>{
-    settime((pre)=>({...pre,[e.target.name]:e.target.value}));
+    if(e.target.name=='date'){
+      const current=moment().format('YYYY-MM-DD').split('-');
+      const find=moment(e.target.value).format('YYYY-MM-DD').split('-');
+      if(current[0]>find[0]){
+        toast.error('select future date\'s');
+        return;
+      }else{
+        if(current[1]>find[1] && current[0]>find[0]){
+          toast.error('select future date\'s');
+          return
+        }else{
+          if(current[2]>=find[1] && current[0]>find[0] && current[1]>find[1]){
+            toast.error('select future date\'s');
+            return
+          }else{
+            settime((pre)=>({...pre,[e.target.name]:e.target.value}));
+            console.log(time)
+          }
+        }
+      }
+      console.log(current,find);
+    }
+    else{
+      settime((pre)=>({...pre,[e.target.name]:e.target.value}));
+      console.log(time)
+    }
   }
-  const book=()=>{
+  const book=async()=>{
     console.log(p_up,drop)
-    if(p_up && drop && time){
+    if(p_up && drop && time && time.date){
       setshow(true);
+      time.from=p_up;
+      time.to=drop;
       dispatch(travilling(time))
       console.log("click")
+      const value=await dispatch(list_of_driver({"loc":p_up.name,"gender":time.gender}))
+      console.log(value,driver_list)
     }
     return
   }
@@ -94,14 +127,14 @@ useEffect(() => {
               </ul>
              )}
              <div className=' w-full grid grid-rows-2 grid-cols-2 justify-center gap-6'>
-              <input name='date' onChange={(e)=>get_in(e)} placeholder='Travel date' className='p-2 text-content outline-none hover:border-r-2 focus:border-b-2 border-base-content' type="date" />
-              <input name='time' onChange={(e)=>get_in(e)} placeholder='Travel time' className='p-2 text-content outline-none hover:border-r-2 focus:border-b-2 border-base-content' type='time'/>
+              <input name='date' value={time?.date} onChange={(e)=>get_in(e)} placeholder='Travel date' className='p-2 text-content outline-none hover:border-r-2 focus:border-b-2 border-base-content' type="date" />
+              <input name='time' value={time?.time} onChange={(e)=>get_in(e)} placeholder='Travel time' className='p-2 text-content outline-none hover:border-r-2 focus:border-b-2 border-base-content' type='time'/>
               <select onChange={(e)=>get_in(e)} className='dropdown w-full' name='gender'>
                   <option defaultValue='Driver gender'>Driver gender</option>
                   <option value='Male'>Male</option>
                   <option value='Female'>Female</option>
               </select>
-              <select onChange={(e)=>{get_in(e); console.log(e)}} className='dropdown w-full' name='vechile'>
+              <select onChange={(e)=>{get_in(e); console.log(e)}} className='dropdown w-full' name='type'>
                   <option defaultValue='vechile type'>vechile type</option>
                   <option value='car'>car</option>
                   <option value='bike'>bike</option>

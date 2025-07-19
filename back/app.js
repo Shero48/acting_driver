@@ -9,10 +9,11 @@ const cors=require('cors');
 const order_route=require('./router/order_route');
 
 app.use(cors({
-    origin:'*',
+    origin:'http://localhost:5173',
     methods:'*',
     allowedHeaders:'*',
-    credentials:true
+    credentials:true,
+    allowedHeaders: ['Content-Type', 'Authorization'] 
 }))
 
 app.use(cookie_parser());

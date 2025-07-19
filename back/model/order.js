@@ -15,6 +15,10 @@ const data_model=new schema({
             required:true,
             match:/^(0[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i
         },
+        type:{
+            type:String,
+            enum:['bike','car','auto','bus'],
+        },
         Date:{
             type:Date,
             required:true
